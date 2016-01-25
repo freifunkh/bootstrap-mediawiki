@@ -76,6 +76,7 @@ class BootstrapMediaWikiTemplate extends QuickTemplate {
 	 */
 	public function execute() {
 		global $wgRequest, $wgUser, $wgSitename, $wgSitenameshort, $wgCopyrightLink, $wgCopyright, $wgBootstrap, $wgArticlePath, $wgGoogleAnalyticsID, $wgSiteCSS;
+        global $wgSideBarNav;
 		global $wgEnableUploads;
 		global $wgLogo;
 		global $wgTOCLocation;
@@ -101,26 +102,16 @@ class BootstrapMediaWikiTemplate extends QuickTemplate {
 							<span class="icon-bar"></span>
 							<span class="icon-bar"></span>
 						</button>
-						<a class="navbar-brand" href="<?php echo $this->data['nav_urls']['mainpage']['href'] ?>" title="<?php echo $wgSitename ?>"><?php echo isset( $wgLogo ) && $wgLogo ? "<img src='{$wgLogo}' alt='Logo'/> " : ''; echo $wgSitenameshort ?: $wgSitename; ?></a>
+						<a class="navbar-brand"
+                           href="/"
+                           title="<?php echo $wgSitename ?>">
+                             <?php
+                               echo isset( $wgLogo ) && $wgLogo ? "<img src='{$wgLogo}' alt='Logo'/> " : ''; echo $wgSitenameshort ?: $wgSitename; ?>
+
+                        </a>
 					</div>
 
 					<div class="collapse navbar-collapse">
-						<ul class="nav navbar-nav">
-							<li>
-							<a href="<?php echo $this->data['nav_urls']['mainpage']['href'] ?>">Home</a>
-							</li>
-							<li class="dropdown">
-								<a href="#" class="dropdown-toggle" data-toggle="dropdown">Tools <span class="caret"></span></a>
-								<ul class="dropdown-menu">
-									<li><a href="<?php echo $url_prefix; ?>Special:RecentChanges" class="recent-changes"><i class="fa fa-edit"></i> Recent Changes</a></li>
-									<li><a href="<?php echo $url_prefix; ?>Special:SpecialPages" class="special-pages"><i class="fa fa-star-o"></i> Special Pages</a></li>
-									<?php if ( $wgEnableUploads ) { ?>
-									<li><a href="<?php echo $url_prefix; ?>Special:Upload" class="upload-a-file"><i class="fa fa-upload"></i> Upload a File</a></li>
-									<?php } ?>
-								</ul>
-							</li>
-							<?php echo $this->nav( $this->get_page_links( 'Bootstrap:TitleBar' ) ); ?>
-						</ul>
 					<?php
 					if ( $wgUser->isLoggedIn() ) {
 						if ( count( $this->data['personal_urls'] ) > 0 ) {
@@ -196,13 +187,23 @@ class BootstrapMediaWikiTemplate extends QuickTemplate {
 						<?php
 					}//end if
 				?>
-				<?php if( $this->data['sitenotice'] ) { ?><div id="siteNotice" class="alert-message warning"><?php $this->html('sitenotice') ?></div><?php } ?>
+				<?php
+					if ( $wgSideBarNav ) {
+						?>
+						<div class="row">
+							<section class="col-md-3 nav-sidebar">
+                                <?php echo $this->myNav( $this->get_page_links( 'Bootstrap:TitleBar' ) ); ?>
+                            </section>
+							<section class="col-md-9 wiki-body-section">
+						<?php
+					}//end if
+				?>				<?php if( $this->data['sitenotice'] ) { ?><div id="siteNotice" class="alert-message warning"><?php $this->html('sitenotice') ?></div><?php } ?>
 				<?php if ( $this->data['undelete'] ): ?>
 				<!-- undelete -->
 				<div id="contentSub2"><?php $this->html( 'undelete' ) ?></div>
 				<!-- /undelete -->
 				<?php endif; ?>
-				<?php if($this->data['newtalk'] ): ?>
+                <?php if($this->data['newtalk'] ): ?>
 				<!-- newtalk -->
 				<div class="usermessage"><?php $this->html( 'newtalk' )  ?></div>
 				<!-- /newtalk -->
@@ -230,7 +231,15 @@ class BootstrapMediaWikiTemplate extends QuickTemplate {
 				<!-- /dataAfterContent -->
 				</div>
 				<?php endif; ?>
+                
 				<?php
+					if ( $wgSideBarNav ) {
+						?>
+						</section></section>
+						<?php
+					}//end if
+				?>
+                <?php
 					if ( 'sidebar' == $wgTOCLocation ) {
 						?>
 						</section></section>
@@ -304,6 +313,56 @@ class BootstrapMediaWikiTemplate extends QuickTemplate {
 				}//end if
 			}//end else
 		}//end foreach
+		return $output;
+	}//end nav
+
+    private function myNav( $nav ) {
+		$output = '<!-- here we are --> <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">';
+        $i = 0;
+		foreach ( $nav as $topItem ) {
+            $i++;
+			$pageTitle = Title::newFromText( $topItem['link'] ?: $topItem['title'] );
+	            $output .= '
+                    <div class="panel panel-default">
+                        <div class="panel-heading" role="tab" id="menu-heading-'.$i.'">
+                            <h4 class="panel-title">
+                                <a role="button" data-toggle="collapse" data-parent="#accordion" href="#menu-content-'.$i.'" aria-expanded="false" aria-controls="#menu-content-'.$i.'">
+                                    '.$topItem['title'].'
+                                </a>
+                            </h4>
+                        </div>
+                        <div id="menu-content-'.$i.'" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="menu-heading-'.$i.'">
+                            <div class="panel-body">
+                                 <ul class="nav nav-my">';
+					
+				foreach ( $topItem['sublinks'] as $subLink ) {
+                    if ( 'divider' == $subLink ) {
+						$output .= "<li class='divider'></li>\n";
+					} elseif ( $subLink['textonly'] ) {
+						$output .= "<li class='nav-header'>{$subLink['title']}</li>\n";
+					} else {
+						if( $subLink['local'] && $pageTitle = Title::newFromText( $subLink['link'] ) ) {
+							$href = $pageTitle->getLocalURL();
+						} else {
+							$href = $subLink['link'];
+						}//end else
+
+						$slug = strtolower( str_replace(' ', '-', preg_replace( '/[^a-zA-Z0-9 ]/', '', trim( strip_tags( $subLink['title'] ) ) ) ) );
+						$output .= "<li {$subLink['attributes']}><a href='{$href}' class='{$subLink['class']} {$slug}'>{$subLink['title']}</a>";
+                        //$output .= '<li role="presentation"><a href="'.$href.'">'.$subLink['title'].'</a></li>';
+					}//end else
+                    
+                }
+                
+                $output .= '</ul>
+                    </div>
+                  </div>
+                </div>';
+                    
+			//end else
+		}//end foreach
+
+        $output .= '</div>';
 		return $output;
 	}//end nav
 

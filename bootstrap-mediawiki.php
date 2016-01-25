@@ -54,3 +54,4 @@ if ( isset( $wgSiteJS ) ) {
 if ( isset( $wgSiteCSS ) ) {
 	$wgResourceModules['skins.bootstrapmediawiki']['styles'][] = $skinDir . '/' . $wgSiteCSS;
 }//end if
+
