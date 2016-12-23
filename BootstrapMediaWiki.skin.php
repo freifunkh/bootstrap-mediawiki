@@ -93,62 +93,67 @@ class BootstrapMediaWikiTemplate extends QuickTemplate {
 		$this->html('headelement');
 		?>
 		<div class="navbar navbar-default navbar-fixed-top <?php echo $wgNavBarClasses; ?>" role="navigation">
-				<div class="container">
-					<!-- .btn-navbar is used as the toggle for collapsed navbar content -->
-					<div class="navbar-header">
-						<button class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse">
-							<span class="sr-only">Toggle navigation</span>
-							<span class="icon-bar"></span>
-							<span class="icon-bar"></span>
-							<span class="icon-bar"></span>
-						</button>
-						<a class="navbar-brand"
-                           href="/"
-                           title="<?php echo $wgSitename ?>">
-                             <?php
-                               echo isset( $wgLogo ) && $wgLogo ? "<img src='{$wgLogo}' alt='Logo'/> " : ''; echo $wgSitenameshort ?: $wgSitename; ?>
+			<!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+			<?php
+				$menu = file_get_contents("/var/www/_MENU.html");
+				$doc = new DOMDocument();
+				$doc->loadHTML($menu);
+				$xpath = new DOMXpath($doc);
 
-                        </a>
-					</div>
+				function get_by_class($xpath, $class) {
+					$result = $xpath->query("//*[contains(@class, '$class')]");
 
-					<div class="collapse navbar-collapse">
-					<?php
-					if ( $wgUser->isLoggedIn() ) {
-						if ( count( $this->data['personal_urls'] ) > 0 ) {
-							$user_icon = '<span class="user-icon"><img src="https://secure.gravatar.com/avatar/'.md5(strtolower( $wgUser->getEmail())).'.jpg?s=20&r=g"/></span>';
-							$name = strtolower( $wgUser->getName() );
-							$user_nav = $this->get_array_links( $this->data['personal_urls'], $user_icon . $name, 'user' );
-							?>
-							<ul<?php $this->html('userlangattributes') ?> class="nav navbar-nav navbar-right">
-								<?php echo $user_nav; ?>
-							</ul>
-							<?php
-						}//end if
-
-						if ( count( $this->data['content_actions']) > 0 ) {
-							$content_nav = $this->get_array_links( $this->data['content_actions'], 'Page', 'page' );
-							?>
-							<ul class="nav navbar-nav navbar-right content-actions"><?php echo $content_nav; ?></ul>
-							<?php
-						}//end if
-					} else {  // else if is logged in
-						?>
-						<ul class="nav navbar-nav navbar-right">
-							<li>
-							<?php echo Linker::linkKnown( SpecialPage::getTitleFor( 'Userlogin' ), wfMsg( 'login' ) ); ?>
-							</li>
-						</ul>
-						<?php
+					foreach ($result as $r) {
+						return $r->ownerDocument->saveHTML($r);
 					}
+				}
+
+			?>
+
+			<?php echo get_by_class($xpath, 'navbar-header'); ?>
+
+			<div id="navbar" class="collapse navbar-collapse">
+
+			<?php echo get_by_class($xpath, 'navbar-nav'); ?>
+
+			<?php
+			if ( $wgUser->isLoggedIn() ) {
+				if ( count( $this->data['personal_urls'] ) > 0 ) {
+					$user_icon = '<span class="user-icon"><img src="https://secure.gravatar.com/avatar/'.md5(strtolower( $wgUser->getEmail())).'.jpg?s=20&r=g"/></span>';
+					$name = strtolower( $wgUser->getName() );
+					$user_nav = $this->get_array_links( $this->data['personal_urls'], $user_icon . $name, 'user' );
 					?>
-					<form class="navbar-search navbar-form navbar-right" action="<?php $this->text( 'wgScript' ) ?>" id="searchform" role="search">
-						<div>
-							<input class="form-control" type="search" name="search" placeholder="Search" title="Search <?php echo $wgSitename; ?> [ctrl-option-f]" accesskey="f" id="searchInput" autocomplete="off">
-							<input type="hidden" name="title" value="Special:Search">
-						</div>
-					</form>
-					</div>
+					<ul<?php $this->html('userlangattributes') ?> class="nav navbar-nav navbar-right">
+						<?php echo $user_nav; ?>
+					</ul>
+					<?php
+				}//end if
+
+				if ( count( $this->data['content_actions']) > 0 ) {
+					$content_nav = $this->get_array_links( $this->data['content_actions'], 'Page', 'page' );
+					?>
+					<ul class="nav navbar-nav navbar-right content-actions"><?php echo $content_nav; ?></ul>
+					<?php
+				}//end if
+			} else {  // else if is logged in
+				?>
+				<ul class="nav navbar-nav navbar-right">
+					<li>
+					<?php echo Linker::linkKnown( SpecialPage::getTitleFor( 'Userlogin' ), wfMsg( 'login' ) ); ?>
+					</li>
+				</ul>
+				<?php
+			}
+			?>
+			<form class="navbar-search navbar-form navbar-right" action="<?php $this->text( 'wgScript' ) ?>" id="searchform" role="search">
+				<div>
+					<input class="form-control" type="search" name="search" placeholder="Search" title="Search <?php echo $wgSitename; ?> [ctrl-option-f]" accesskey="f" id="searchInput" autocomplete="off">
+					<input type="hidden" name="title" value="Special:Search">
 				</div>
+			</form>
+			</div>
+			<script src="/js/jquery.min.js"></script>
+			<script src="/js/bootstrap.min.js"></script>
 		</div><!-- topbar -->
 		<?php
 		if( $subnav_links = $this->get_page_links('Bootstrap:Subnav') ) {
